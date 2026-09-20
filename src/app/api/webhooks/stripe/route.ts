@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia",
-});
+const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
+const stripe = stripeSecret
+  ? new Stripe(stripeSecret, { apiVersion: "2024-11-20.acacia" as Stripe.LatestApiVersion })
+  : null;
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
   const sig = request.headers.get("stripe-signature");
   const secret = process.env.STRIPE_WEBHOOK_SECRET || "";
-  if (!sig || !secret) {
+  if (!sig || !secret || !stripe) {
     return NextResponse.json({ error: "Misconfigured" }, { status: 400 });
   }
   try {

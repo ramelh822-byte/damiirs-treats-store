@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
-  apiVersion: "2024-11-20.acacia",
-});
+const stripeSecret = process.env.STRIPE_SECRET_KEY || "";
+const stripe = stripeSecret
+  ? new Stripe(stripeSecret, { apiVersion: "2024-11-20.acacia" as Stripe.LatestApiVersion })
+  : null;
 
 export async function POST(request: NextRequest) {
   try {
-    if (!process.env.STRIPE_SECRET_KEY) {
+    if (!stripe) {
       return NextResponse.json({ error: "Stripe not configured" }, { status: 500 });
     }
     const body = await request.json();
@@ -17,11 +18,11 @@ export async function POST(request: NextRequest) {
     }
     const orderId = `ORD-${Date.now()}`;
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(total * 100),
+      amount: Math.round(Number(total) * 100),
       currency: "usd",
       automatic_payment_methods: { enabled: true },
-      metadata: { order_id: orderId, customer_email: billing.email },
-      receipt_email: billing.email,
+      metadata: { order_id: orderId, customer_email: String(billing.email) },
+      receipt_email: String(billing.email),
       description: `Damiir's Treats ${orderId}`,
     });
     return NextResponse.json({
